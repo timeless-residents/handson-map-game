@@ -431,10 +431,16 @@ function endGame() {
   console.log("Ending game");
   state.gameStatus = "finished";
 
-  // キーボードコントロールを削除
+  // すべてのイベントリスナーを削除
   if (keyboardHandler) {
     document.removeEventListener("keydown", keyboardHandler);
     keyboardHandler = null;
+  }
+
+  // 既存のコントロールを削除
+  const existingControls = document.querySelector(".mobile-controls");
+  if (existingControls) {
+    existingControls.remove();
   }
 
   // マーカーとマップをクリーンアップ
@@ -452,31 +458,21 @@ function endGame() {
   const hintElement = document.getElementById("hint");
   const controlsElement = document.getElementById("controls");
   const feedbackElement = document.getElementById("feedback");
-  const scoreElement = document.getElementById("score"); // スコア要素も取得
+  const scoreElement = document.getElementById("score");
 
-  if (questionElement) questionElement.textContent = "おしまい！";
-  if (hintElement)
-    hintElement.textContent = `${state.score}かい せいかいでした！ すごい！！`;
-  if (controlsElement)
-    controlsElement.textContent = "もういちど あそぶ？";
-    
-    // モバイル用のリスタートボタンを追加
-    const controlsContainer = document.createElement("div");
-    controlsContainer.className = "mobile-controls";
-    controlsContainer.innerHTML = `
-      <button id="restartBtn" class="answer-btn">
-        もういちど！
-      </button>
-    `;
-    document.getElementById("game-container").appendChild(controlsContainer);
+  const endText = "おしまい！";
+  const scoreText = `${state.score}かい せいかいでした！ すごい！！`;
 
-    // リスタートボタンのイベントリスナー
-    document.getElementById("restartBtn").addEventListener("click", () => {
-      restartGame();
-    });
+  // 音声ボタン付きで表示
+  createSpeakerButton(endText, 'question');
+  createSpeakerButton(scoreText, 'hint');
+  if (controlsElement) controlsElement.textContent = "もういちど あそぶ？";
   if (feedbackElement) feedbackElement.textContent = "";
-  if (scoreElement)
-    scoreElement.textContent = `${state.score}かい せいかい`; // スコアも更新
+  if (scoreElement) scoreElement.textContent = `${state.score}かい せいかい`;
+
+  // 自動で読み上げ
+  speak(endText);
+  setTimeout(() => speak(scoreText), 1500);
 
   // 地図を非表示に
   const mapElement = document.getElementById("map");
@@ -484,27 +480,53 @@ function endGame() {
     mapElement.style.display = "none";
   }
 
-  // 新しいrestartGameHandlerを追加
+  // リスタートボタンを追加
+  const gameContainer = document.getElementById("game-container");
+  const controlsContainer = document.createElement("div");
+  controlsContainer.className = "mobile-controls";
+  const restartButton = document.createElement("button");
+  restartButton.id = "restartBtn";
+  restartButton.className = "answer-btn";
+  restartButton.textContent = "もういちど！";
+  
+  // タッチイベントでの再起動
+  restartButton.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    restartGame();
+  });
+  
+  // クリックイベントでの再起動（PCユーザー用）
+  restartButton.addEventListener("click", (e) => {
+    e.preventDefault();
+    restartGame();
+  });
+
+  controlsContainer.appendChild(restartButton);
+  gameContainer.appendChild(controlsContainer);
+
+  // キーボードでの再起動
   document.addEventListener("keydown", restartGameHandler);
 }
-
-// リスタート用のハンドラー関数
 
 // リスタート機能
 function restartGame() {
   console.log("Restarting game");
 
-  // 古いイベントリスナーを削除
+  // 重複実行を防ぐ
+  if (state.gameStatus === "restarting") return;
+  state.gameStatus = "restarting";
+
+  // すべてのイベントリスナーを削除
   document.removeEventListener("keydown", restartGameHandler);
 
-  // リスタートボタンを削除
-  const oldControls = document.querySelector(".mobile-controls");
-  if (oldControls) {
-    oldControls.remove();
-  }
+  // すべてのコントロールを削除
+  const oldControls = document.querySelectorAll(".mobile-controls");
+  oldControls.forEach(control => control.remove());
 
   const mapElement = document.getElementById("map");
-  mapElement.style.display = "block";
+  if (mapElement) {
+    mapElement.style.display = "block";
+  }
 
   // 完全なクリーンアップを実行
   cleanupMap();

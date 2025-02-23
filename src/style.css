@@ -141,7 +141,7 @@ body {
   }
 
   #map {
-    height: calc(100vh - 300px);
+    height: calc(100vh - 350px);
     /* Adjust map height based on viewport */
     margin-bottom: 0;
     /* Remove margin as we're using fixed positioning */
