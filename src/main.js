@@ -2,7 +2,6 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// 地域のデータ（4歳児向けに単純化）
 const regions = [
   { name: "ほっかいどう", coords: [43.0, 142.0], hint: "さむいところ" },
   { name: "とうきょう", coords: [35.7, 139.7], hint: "スカイツリーがあるよ" },
@@ -10,36 +9,28 @@ const regions = [
   { name: "みやぎ", coords: [38.3, 140.9], hint: "ぎゅうたんがゆうめい" },
 ];
 
-// ゲームの状態
 let state = {
   map: null,
   marker: null,
   currentRegion: null,
-  pointerPosition: [37.5, 137.5], // ポインタの初期位置
+  pointerPosition: [37.5, 137.5],
   score: 0,
   totalQuestions: 0,
   gameStatus: "playing",
   remainingRegions: [...regions],
-  moveStep: 1, // 矢印キーを1回押したときの移動量（度）
+  moveStep: 1,
 };
 
-// 地図の初期化
 function initMap() {
-  // 既存のマップインスタンスがある場合は削除
   if (state.map) {
     state.map.remove();
     state.map = null;
   }
 
-  // マップコンテナをクリーンアップ
   const mapElement = document.getElementById("map");
   mapElement.innerHTML = "";
 
-  // 日本の大まかな範囲を定義
-  const bounds = L.latLngBounds(
-    [20, 122], // 南西端（沖縄の南西）
-    [46, 154] // 北東端（北海道の北東）
-  );
+  const bounds = L.latLngBounds([20, 122], [46, 154]);
 
   state.map = L.map("map", {
     zoomControl: false,
@@ -49,6 +40,7 @@ function initMap() {
     maxBounds: bounds,
     minZoom: 5,
     maxZoom: 5,
+    tap: true, // Enable tap for mobile
   }).setView([37.5, 137.5], 5);
 
   L.tileLayer(
@@ -59,25 +51,22 @@ function initMap() {
     }
   ).addTo(state.map);
 
-  // 日本以外の部分をマスクする
+  // Add Japan mask
   const japanOutline = [
-    [50, 120], // 左上
-    [50, 155], // 右上
-    [20, 155], // 右下
-    [20, 120], // 左下
+    [50, 120],
+    [50, 155],
+    [20, 155],
+    [20, 120],
   ];
 
-  // マスクを作成（日本以外を半透明の白で覆う）
   L.polygon(
     [
-      // 外側の四角形
       [
         [90, 90],
         [90, 180],
         [-90, 180],
         [-90, 90],
       ],
-      // 日本の範囲（切り抜く部分）
       japanOutline,
     ],
     {
@@ -88,88 +77,143 @@ function initMap() {
     }
   ).addTo(state.map);
 
-  // ポインタの初期設定
+  // Add tap/click handler
+  state.map.on("click", (e) => {
+    if (state.gameStatus !== "playing") return;
+
+    const clickedPosition = [e.latlng.lat, e.latlng.lng];
+    state.pointerPosition = clickedPosition;
+
+    // Update marker position
+    if (state.marker) {
+      state.marker.setLatLng(clickedPosition);
+    } else {
+      state.marker = L.marker(clickedPosition, {
+        icon: L.divIcon({
+          className: "pointer-marker",
+          iconSize: [40, 40],
+          html: `<div class="pointer-circle"></div>`,
+          zIndexOffset: 400,
+        }),
+      }).addTo(state.map);
+    }
+
+    // Add confirm button if it doesn't exist
+    const confirmBtn = document.getElementById("confirmBtn");
+    if (!confirmBtn) {
+      const btn = document.createElement("button");
+      btn.id = "confirmBtn";
+      btn.className =
+        "fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-6 py-3 rounded-full shadow-lg text-xl font-bold";
+      btn.textContent = "ここにする！";
+      btn.onclick = checkAnswer;
+      document.body.appendChild(btn);
+    }
+  });
+
+  // Initialize pointer marker
   state.marker = L.marker(state.pointerPosition, {
     icon: L.divIcon({
       className: "pointer-marker",
       iconSize: [40, 40],
       html: `<div class="pointer-circle"></div>`,
-      zIndexOffset: 400, // zIndexOffset を追加
+      zIndexOffset: 400,
     }),
   }).addTo(state.map);
 }
 
-let keyboardHandler;
-// キーボード操作の設定
-function setupKeyboardControls() {
-  // すでにイベントリスナーが設定されている場合は削除
-  if (keyboardHandler) {
-    document.removeEventListener("keydown", keyboardHandler);
+// Update the controls text for mobile
+function updateControlsText() {
+  const isMobile = window.innerWidth <= 768;
+  document.getElementById("controls").textContent = isMobile
+    ? "ちずを タップして えらんでね！"
+    : "↑↓←→ で どうかして、スペースキー で きめてね！";
+}
+
+// Add window resize handler
+window.addEventListener("resize", updateControlsText);
+
+// Update endGame to handle mobile button
+function endGame() {
+  state.gameStatus = "finished";
+
+  // Clean up the confirm button if it exists
+  const confirmBtn = document.getElementById("confirmBtn");
+  if (confirmBtn) {
+    confirmBtn.remove();
   }
 
-  // 新しいハンドラーを設定
-  keyboardHandler = (e) => {
-    if (state.gameStatus !== "playing") return;
+  // Clean up markers
+  if (state.correctMarker) {
+    state.correctMarker.remove();
+    state.correctMarker = null;
+  }
+  if (state.marker) {
+    state.marker.remove();
+    state.marker = null;
+  }
 
-    const [lat, lng] = state.pointerPosition;
-    let newLat = lat;
-    let newLng = lng;
+  // Update UI
+  document.getElementById("question").textContent = "おしまい！";
+  document.getElementById(
+    "hint"
+  ).textContent = `${state.score}かい せいかいでした！ すごい！！`;
+  document.getElementById("controls").textContent =
+    "もういちど あそぶには がめんを タップしてね！";
+  document.getElementById("feedback").textContent = "";
+  document.getElementById(
+    "score"
+  ).textContent = `てんすう: ${state.score}かい せいかい！`;
 
-    switch (e.key) {
-      case "ArrowUp":
-        e.preventDefault();
-        newLat = Math.min(46, lat + state.moveStep);
-        break;
-      case "ArrowDown":
-        e.preventDefault();
-        newLat = Math.max(20, lat - state.moveStep);
-        break;
-      case "ArrowLeft":
-        e.preventDefault();
-        newLng = Math.max(122, lng - state.moveStep);
-        break;
-      case "ArrowRight":
-        e.preventDefault();
-        newLng = Math.min(154, lng + state.moveStep);
-        break;
-      case " ":
-        e.preventDefault();
-        checkAnswer();
-        return;
-    }
+  // Hide map
+  const mapElement = document.getElementById("map");
+  mapElement.style.display = "none";
 
-    state.pointerPosition = [newLat, newLng];
-    state.marker.setLatLng(state.pointerPosition);
+  // Add touch/click handler for restart
+  document.addEventListener("click", restartGameHandler);
+  document.addEventListener("touchend", restartGameHandler);
+}
+
+// Update restartGameHandler for touch support
+function restartGameHandler(e) {
+  e.preventDefault();
+
+  // Remove event listeners
+  document.removeEventListener("click", restartGameHandler);
+  document.removeEventListener("touchend", restartGameHandler);
+
+  // Remove confirm button if it exists
+  const confirmBtn = document.getElementById("confirmBtn");
+  if (confirmBtn) {
+    confirmBtn.remove();
+  }
+
+  const mapElement = document.getElementById("map");
+  mapElement.style.display = "block";
+
+  // Reset game state
+  state = {
+    map: null,
+    marker: null,
+    currentRegion: null,
+    pointerPosition: [37.5, 137.5],
+    score: 0,
+    totalQuestions: 0,
+    gameStatus: "playing",
+    remainingRegions: [...regions],
+    moveStep: 1,
   };
 
-  // イベントリスナーを追加
-  document.addEventListener("keydown", keyboardHandler);
-}
-// 距離計算
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  // Reinitialize game
+  initMap();
+  setupKeyboardControls(); // Keep keyboard controls for desktop
+  startNewQuestion();
+  updateControlsText();
 }
 
-// 新しい問題の開始
+// Keep existing functions but update startNewQuestion
 function startNewQuestion() {
-  console.log("Starting new question:", {
-    remainingRegions: state.remainingRegions.length,
-    totalQuestions: state.totalQuestions,
-  });
-
-  // 問題数で終了判定
   if (state.totalQuestions >= regions.length) {
-    console.log("No more questions available");
     endGame();
     return;
   }
@@ -180,34 +224,26 @@ function startNewQuestion() {
   state.currentRegion = state.remainingRegions[randomIndex];
   state.remainingRegions.splice(randomIndex, 1);
 
-  console.log("Selected region:", state.currentRegion.name);
-
   document.getElementById(
     "question"
   ).textContent = `「${state.currentRegion.name}」は どこかな？`;
   document.getElementById(
     "hint"
   ).textContent = `ヒント: ${state.currentRegion.hint}`;
-  document.getElementById("controls").textContent =
-    "↑↓←→ で どうかして、スペースキー で きめてね！";
+  updateControlsText();
   document.getElementById("feedback").textContent = "";
+
+  // Remove confirm button if it exists
+  const confirmBtn = document.getElementById("confirmBtn");
+  if (confirmBtn) {
+    confirmBtn.remove();
+  }
 
   state.pointerPosition = [37.5, 137.5];
 
-  // マーカーを一度削除して再作成
   if (state.marker) {
-    state.marker.remove();
+    state.marker.setLatLng(state.pointerPosition);
   }
-
-  // ポインターマーカーを作成
-  state.marker = L.marker(state.pointerPosition, {
-    icon: L.divIcon({
-      className: "pointer-marker",
-      iconSize: [40, 40],
-      html: `<div class="pointer-circle"></div>`,
-    }),
-    zIndexOffset: 400,
-  }).addTo(state.map);
 
   if (state.correctMarker) {
     state.correctMarker.remove();
@@ -216,193 +252,11 @@ function startNewQuestion() {
 
   updateScore();
 }
-function cleanupMap() {
-  if (state.marker) {
-    state.marker.remove();
-    state.marker = null;
-  }
-  if (state.correctMarker) {
-    state.correctMarker.remove();
-    state.correctMarker = null;
-  }
-  if (state.map) {
-    state.map.remove();
-    state.map = null;
-  }
-}
-// 回答のチェック
-function checkAnswer() {
-  if (!state.currentRegion || state.gameStatus !== "playing") return;
 
-  const distance = calculateDistance(
-    state.pointerPosition[0],
-    state.pointerPosition[1],
-    state.currentRegion.coords[0],
-    state.currentRegion.coords[1]
-  );
-
-  const isCorrect = distance < 300;
-  if (isCorrect) {
-    state.score++;
-  }
-  state.totalQuestions++;
-
-  state.gameStatus = "checking";
-
-  // いったん既存のポインターマーカーを削除
-  if (state.marker) {
-    state.marker.remove();
-  }
-
-  // 正解位置を星マークで表示
-  state.correctMarker = L.marker(state.currentRegion.coords, {
-    icon: L.divIcon({
-      className: "star-shape",
-      iconSize: [32, 32],
-      html: "⭐",
-    }),
-    pane: "popupPane",
-    zIndexOffset: 1000, // より大きなzIndexOffsetを設定
-  }).addTo(state.map);
-
-  // ポインターマーカーを再作成して後ろに表示
-  state.marker = L.marker(state.pointerPosition, {
-    icon: L.divIcon({
-      className: "pointer-marker",
-      iconSize: [40, 40],
-      html: `<div class="pointer-circle"></div>`,
-    }),
-    zIndexOffset: 400,
-  }).addTo(state.map);
-
-  // フィードバック表示
-  const feedback = isCorrect
-    ? "せいかい！ すごい！！"
-    : "ざんねん... ここだよ！";
-  document.getElementById("feedback").textContent = feedback;
-
-  if (state.totalQuestions >= regions.length) {
-    setTimeout(() => {
-      document.getElementById("feedback").textContent = "";
-      endGame();
-    }, 3000);
-  } else {
-    setTimeout(() => {
-      document.getElementById("feedback").textContent = "";
-      startNewQuestion();
-    }, 3000);
-  }
-}
-
-// 音声効果（オプション）
-function playCorrectSound() {
-  const audio = new Audio(
-    "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBmB0N1xpe4Q..."
-  );
-  audio.play().catch(() => {}); // エラーを無視
-}
-
-function playIncorrectSound() {
-  const audio = new Audio(
-    "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBmB0yeqUVi..."
-  );
-  audio.play().catch(() => {}); // エラーを無視
-}
-
-// スコアの更新
-function updateScore() {
-  document.getElementById(
-    "score"
-  ).textContent = `てんすう: ${state.score}かい せいかい！`;
-}
-
-// ゲーム終了
-function endGame() {
-  console.log("Ending game");
-  state.gameStatus = "finished";
-
-  // キーボードコントロールを削除
-  if (keyboardHandler) {
-    document.removeEventListener("keydown", keyboardHandler);
-    keyboardHandler = null;
-  }
-
-  // マーカーとマップをクリーンアップ
-  if (state.correctMarker) {
-    state.correctMarker.remove();
-    state.correctMarker = null;
-  }
-  if (state.marker) {
-    state.marker.remove();
-    state.marker = null;
-  }
-
-  // UI更新
-  const questionElement = document.getElementById("question");
-  const hintElement = document.getElementById("hint");
-  const controlsElement = document.getElementById("controls");
-  const feedbackElement = document.getElementById("feedback");
-  const scoreElement = document.getElementById("score"); // スコア要素も取得
-
-  if (questionElement) questionElement.textContent = "おしまい！";
-  if (hintElement)
-    hintElement.textContent = `${state.score}かい せいかいでした！ すごい！！`;
-  if (controlsElement)
-    controlsElement.textContent = "スペースキーを おしてね！";
-  if (feedbackElement) feedbackElement.textContent = "";
-  if (scoreElement)
-    scoreElement.textContent = `てんすう: ${state.score}かい せいかい！`; // スコアも更新
-
-  // 地図を非表示に
-  const mapElement = document.getElementById("map");
-  if (mapElement) {
-    mapElement.style.display = "none";
-  }
-
-  // 新しいrestartGameHandlerを追加
-  document.addEventListener("keydown", restartGameHandler);
-}
-
-// リスタート用のハンドラー関数
-
-// restartGameHandlerを修正
-function restartGameHandler(e) {
-  if (e.key === " ") {
-    e.preventDefault();
-    console.log("Restarting game");
-
-    // 古いイベントリスナーを削除
-    document.removeEventListener("keydown", restartGameHandler);
-
-    const mapElement = document.getElementById("map");
-    mapElement.style.display = "block";
-
-    // 完全なクリーンアップを実行
-    cleanupMap();
-
-    // 新しいゲーム状態を作成
-    state = {
-      map: null, // マップも新規作成するように変更
-      marker: null,
-      currentRegion: null,
-      pointerPosition: [37.5, 137.5],
-      score: 0,
-      totalQuestions: 0,
-      gameStatus: "playing",
-      remainingRegions: [...regions],
-      moveStep: 1,
-    };
-
-    // ゲームを再初期化
-    initMap();
-    setupKeyboardControls();
-    startNewQuestion();
-  }
-}
-
-// 初期化
+// Initialize the game
 document.addEventListener("DOMContentLoaded", () => {
   initMap();
   setupKeyboardControls();
   startNewQuestion();
+  updateControlsText();
 });
