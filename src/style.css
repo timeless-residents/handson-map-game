@@ -109,7 +109,7 @@ body {
   }
 
   h1 {
-    font-size: 1.5rem !important;
+    font-size: 1.2rem !important;
   }
 
   #score {
@@ -117,16 +117,18 @@ body {
   }
 
   #question {
-    font-size: 1.5rem !important;
+    font-size: 1.2rem !important;
     margin-bottom: 0.5rem;
   }
 
   #feedback {
     font-size: 1.2rem !important;
+    min-height: 1.5em;
   }
 
   #hint {
     font-size: 1rem !important;
+    min-height: 1.2em;
   }
 
   #controls {
@@ -150,6 +152,16 @@ body {
     height: calc(100vh - 80px);
     /* Subtract header height */
     overflow: hidden;
+  }
+
+  /* Ensure text container maintains height */
+  .flex-col {
+    gap: 0.5rem;
+  }
+
+  /* Prevent text overlap */
+  .flex-col>* {
+    flex-shrink: 0;
   }
 }
 
