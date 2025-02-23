@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
-/* style.css に追加 */
+/* Base styles */
+body {
+  overflow: hidden;
+  height: 100vh;
+  position: fixed;
+  width: 100%;
+}
+
 .pointer-circle {
   width: 40px;
   height: 40px;
@@ -25,33 +32,130 @@
   }
 }
 
+/* Map styles */
 #map {
   height: 55vh;
   width: 100%;
   z-index: 1;
+  touch-action: none;
+  /* Prevent default touch behaviors */
 }
 
+/* Marker styles */
 .pointer-marker {
   z-index: 400 !important;
 }
 
 .star-shape {
-  z-index: 500;
-  /* ⭐️を pointer-marker より上に表示 */
+  z-index: 1000 !important;
   font-size: 32px;
   text-align: center;
   line-height: 32px;
   margin-left: -16px;
   margin-top: -16px;
-  z-index: 1000 !important;
 }
 
 .leaflet-marker-pane {
   z-index: 600;
-  /* マーカーペイン全体のz-indexを上げる */
 }
 
-/* マーカーのdivアイコンにも明示的にz-indexを設定 */
 .leaflet-marker-icon {
   z-index: inherit !important;
+}
+
+/* Mobile controls */
+.mobile-controls {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: 90%;
+  max-width: 400px;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.answer-btn {
+  background-color: #4CAF50;
+  color: white;
+  padding: 16px 32px;
+  border-radius: 50px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.answer-btn:active {
+  transform: scale(0.95);
+}
+
+/* ゲーム終了時のボタン */
+#restartBtn {
+  margin-top: 20px;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  .container {
+    padding: 0.5rem;
+  }
+
+  header {
+    padding: 0.5rem 1rem;
+  }
+
+  h1 {
+    font-size: 1.5rem !important;
+  }
+
+  #score {
+    font-size: 1rem !important;
+  }
+
+  #question {
+    font-size: 1.5rem !important;
+    margin-bottom: 0.5rem;
+  }
+
+  #feedback {
+    font-size: 1.2rem !important;
+  }
+
+  #hint {
+    font-size: 1rem !important;
+  }
+
+  #controls {
+    display: none;
+    /* Hide keyboard controls on mobile */
+  }
+
+  .bg-white {
+    padding: 1rem !important;
+  }
+
+  #map {
+    height: calc(100vh - 300px);
+    /* Adjust map height based on viewport */
+    margin-bottom: 0;
+    /* Remove margin as we're using fixed positioning */
+  }
+
+  /* Ensure game container doesn't scroll */
+  #game-container {
+    height: calc(100vh - 80px);
+    /* Subtract header height */
+    overflow: hidden;
+  }
+}
+
+/* Prevent text selection during touch interactions */
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }

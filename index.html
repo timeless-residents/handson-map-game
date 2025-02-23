@@ -3,108 +3,41 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#4299E1" />
   <title>にほんちず クイズ</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" />
-  <style>
-    .pointer-circle {
-      width: 40px;
-      height: 40px;
-      background-color: rgba(255, 0, 0, 0.6);
-      border: 4px solid white;
-      border-radius: 50%;
-      box-shadow: 0 0 0 2px red;
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% {
-        transform: scale(1);
-      }
-
-      50% {
-        transform: scale(1.2);
-      }
-
-      100% {
-        transform: scale(1);
-      }
-    }
-
-    #map {
-      height: 50vh;
-      width: 100%;
-      z-index: 1;
-    }
-
-    .pointer-marker {
-      z-index: 400 !important;
-    }
-
-    .star-shape {
-      z-index: 500;
-      font-size: 32px;
-      text-align: center;
-      line-height: 32px;
-      margin-left: -16px;
-      margin-top: -16px;
-      z-index: 1000 !important;
-    }
-
-    .leaflet-marker-pane {
-      z-index: 600;
-    }
-
-    .leaflet-marker-icon {
-      z-index: inherit !important;
-    }
-
-    @media (max-width: 640px) {
-      #map {
-        height: 45vh;
-      }
-
-      .pointer-circle {
-        width: 30px;
-        height: 30px;
-        border-width: 3px;
-      }
-
-      .star-shape {
-        font-size: 24px;
-        line-height: 24px;
-        margin-left: -12px;
-        margin-top: -12px;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="/src/style.css" />
 </head>
 
-<body class="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100">
-  <header class="py-2 sm:py-4 px-2 sm:px-4 bg-white shadow-md">
-    <div class="container mx-auto max-w-4xl">
-      <div class="flex items-center justify-between">
-        <h1 class="text-xl sm:text-3xl font-bold text-blue-800">にほんちず クイズ</h1>
-        <div id="score" class="text-base sm:text-xl font-medium text-gray-700">てんすう: 0かい せいかい！</div>
-      </div>
-    </div>
-  </header>
-
-  <main class="container mx-auto max-w-4xl p-2 sm:p-4">
-    <div id="game-container">
-      <div class="bg-white rounded-lg shadow-lg p-3 sm:p-6 mb-3 sm:mb-6">
-        <p id="question" class="text-xl sm:text-3xl text-center font-bold text-gray-800 mb-2 sm:mb-3"></p>
-        <div class="h-12 sm:h-16">
-          <p id="feedback" class="text-lg sm:text-2xl text-center text-green-500 mb-1 sm:mb-2"></p>
-          <p id="hint" class="text-base sm:text-xl text-center text-purple-600"></p>
+<body>
+  <div class="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100">
+    <header class="py-2 px-3 bg-blue-500 shadow-md">
+      <div class="container mx-auto max-w-4xl">
+        <div class="flex items-center justify-between">
+          <h1 class="text-xl sm:text-2xl font-bold text-white">にほんちず</h1>
+          <div id="score" class="text-sm sm:text-lg font-medium text-white">0かい せいかい</div>
         </div>
-        <p id="controls" class="text-base sm:text-xl text-center text-blue-600 mb-2"></p>
       </div>
-      <div id="map" class="rounded-xl sm:rounded-2xl shadow-lg"></div>
-    </div>
-  </main>
+    </header>
+
+    <main class="container mx-auto max-w-4xl p-2">
+      <div id="game-container">
+        <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+          <p id="question" class="text-2xl text-center font-bold text-gray-800 mb-2"></p>
+          <div class="h-12">
+            <p id="feedback" class="text-xl text-center text-green-500 mb-1"></p>
+            <p id="hint" class="text-lg text-center text-purple-600"></p>
+          </div>
+          <p id="controls" class="text-lg text-center text-blue-600 mb-1"></p>
+        </div>
+        <div id="map" class="rounded-xl shadow-lg"></div>
+      </div>
+    </main>
+  </div>
+  <script type="module" src="/src/main.js"></script>
 </body>
 
 </html>
