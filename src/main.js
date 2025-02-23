@@ -231,6 +231,40 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+// 音声読み上げ機能
+function speak(text) {
+  // ブラウザが音声合成に対応しているか確認
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ja-JP';
+    utterance.rate = 0.9; // 少しゆっくり
+    utterance.pitch = 1.2; // 少し高め（子供向け）
+    speechSynthesis.speak(utterance);
+  }
+}
+
+// 音声ボタンを作成
+function createSpeakerButton(text, elementId) {
+  const element = document.getElementById(elementId);
+  const container = document.createElement('div');
+  container.className = 'flex items-center justify-center gap-2';
+  
+  // テキストを span に移動
+  const textSpan = document.createElement('span');
+  textSpan.textContent = text;
+  
+  // スピーカーボタン
+  const button = document.createElement('button');
+  button.innerHTML = '🔊';
+  button.className = 'speaker-btn';
+  button.addEventListener('click', () => speak(text));
+  
+  container.appendChild(textSpan);
+  container.appendChild(button);
+  element.innerHTML = '';
+  element.appendChild(container);
+}
+
 // 新しい問題の開始
 function startNewQuestion() {
   console.log("Starting new question:", {
@@ -253,15 +287,18 @@ function startNewQuestion() {
 
   console.log("Selected region:", state.currentRegion.name);
 
-  document.getElementById(
-    "question"
-  ).textContent = `「${state.currentRegion.name}」は どこかな？`;
-  document.getElementById(
-    "hint"
-  ).textContent = `ヒント: ${state.currentRegion.hint}`;
-  document.getElementById("controls").textContent =
-    "↑↓←→ で どうかして、スペースキー で きめてね！";
+  const questionText = `「${state.currentRegion.name}」は どこかな？`;
+  const hintText = `ヒント: ${state.currentRegion.hint}`;
+  const controlsText = "↑↓←→ で どうかして、スペースキー で きめてね！";
+
+  // 音声ボタン付きで表示
+  createSpeakerButton(questionText, 'question');
+  createSpeakerButton(hintText, 'hint');
+  document.getElementById("controls").textContent = controlsText;
   document.getElementById("feedback").textContent = "";
+
+  // 問題文を自動で読み上げ
+  speak(questionText);
 
   state.pointerPosition = [37.5, 137.5];
 
@@ -351,7 +388,8 @@ function checkAnswer() {
   const feedback = isCorrect
     ? "せいかい！ すごい！！"
     : "ざんねん... ここだよ！";
-  document.getElementById("feedback").textContent = feedback;
+  createSpeakerButton(feedback, 'feedback');
+  speak(feedback);
 
   if (state.totalQuestions >= regions.length) {
     setTimeout(() => {
